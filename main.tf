@@ -17,7 +17,7 @@ resource "aws_s3_bucket" "main" {
   #checkov:skip=CKV_AWS_18:Ensure the S3 bucket has access logging enabled
   #checkov:skip=CKV_AWS_145:Ensure that S3 buckets are encrypted with KMS by default
   for_each = toset(local.environments)
-  bucket = "apollo416-terraform-${each.value}"
+  bucket   = "apollo416-terraform-${each.value}"
   tags = {
     Env = "prd"
     Rev = "main"
@@ -26,8 +26,8 @@ resource "aws_s3_bucket" "main" {
 
 # aws_s3_bucket_versioning
 resource "aws_s3_bucket_versioning" "main" {
-  for_each  = toset(local.environments)
-  bucket = aws_s3_bucket.main[each.value].id
+  for_each = toset(local.environments)
+  bucket   = aws_s3_bucket.main[each.value].id
   versioning_configuration {
     status = "Enabled"
   }
@@ -35,7 +35,7 @@ resource "aws_s3_bucket_versioning" "main" {
 
 # aws_s3_bucket_public_access_block
 resource "aws_s3_bucket_public_access_block" "main" {
-  for_each  = toset(local.environments)
+  for_each                = toset(local.environments)
   bucket                  = aws_s3_bucket.main[each.value].bucket
   block_public_acls       = true
   block_public_policy     = true
@@ -45,7 +45,7 @@ resource "aws_s3_bucket_public_access_block" "main" {
 
 # aws_s3_bucket_lifecycle_configuration
 resource "aws_s3_bucket_lifecycle_configuration" "main" {
-  for_each  = toset(local.environments)
+  for_each   = toset(local.environments)
   bucket     = aws_s3_bucket.main[each.value].id
   depends_on = [aws_s3_bucket_versioning.main]
   rule {
@@ -62,8 +62,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "main" {
 
 # aws_s3_bucket_notification
 resource "aws_s3_bucket_notification" "main" {
-  for_each  = toset(local.environments)
-  bucket = aws_s3_bucket.main[each.value].id
+  for_each = toset(local.environments)
+  bucket   = aws_s3_bucket.main[each.value].id
   topic {
     topic_arn = aws_sns_topic.main[each.value].arn
     events    = ["s3:ObjectCreated:*"]
@@ -72,7 +72,7 @@ resource "aws_s3_bucket_notification" "main" {
 
 # aws_sns_topic
 resource "aws_sns_topic" "main" {
-  for_each  = toset(local.environments)
+  for_each          = toset(local.environments)
   name              = aws_s3_bucket.main[each.value].bucket
   kms_master_key_id = "alias/aws/sns"
   policy            = data.aws_iam_policy_document.main[each.value].json
@@ -84,7 +84,7 @@ resource "aws_sns_topic" "main" {
 
 # aws_iam_policy_document
 data "aws_iam_policy_document" "main" {
-  for_each  = toset(local.environments)
+  for_each = toset(local.environments)
   statement {
     effect = "Allow"
     principals {
@@ -98,5 +98,22 @@ data "aws_iam_policy_document" "main" {
       variable = "aws:SourceArn"
       values   = [aws_s3_bucket.main[each.value].arn]
     }
+  }
+}
+
+resource "aws_dynamodb_table" "main" {
+  #checkov:skip=CKV_AWS_119:Ensure DynamoDB Tables are encrypted using a KMS Customer Managed CMK
+  #checkov:skip=CKV_AWS_28:Ensure DynamoDB point in time recovery (backup) is enabled
+  for_each     = aws_s3_bucket.main
+  name         = each.value.bucket
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+  tags = {
+    Env = "prd"
+    Rev = "main"
   }
 }
