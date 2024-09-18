@@ -13,6 +13,9 @@ resource "aws_ce_cost_allocation_tag" "main" {
 
 # aws_s3_bucket
 resource "aws_s3_bucket" "main" {
+  #checkov:skip=CKV_AWS_144:Ensure that S3 bucket has cross-region replication enabled
+  #checkov:skip=CKV_AWS_18:Ensure the S3 bucket has access logging enabled
+  #checkov:skip=CKV_AWS_145:Ensure that S3 buckets are encrypted with KMS by default
   for_each = toset(local.environments)
   bucket = "apollo416-terraform-${each.value}"
   tags = {

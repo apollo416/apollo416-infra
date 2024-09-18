@@ -10,7 +10,7 @@ on:
 permissions: read-all
 
 jobs:
-  network:
+  terraform:
     runs-on: ubuntu-latest
 
     environment: dev
