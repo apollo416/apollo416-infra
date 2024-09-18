@@ -1,0 +1,61 @@
+name: Terraform PRD Deployment
+
+on:
+  release:
+    types: [published]
+
+permissions: read-all
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    environment: production
+
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+    steps:
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.5"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Prepare Terraform Cache
+        run: |
+          echo 'plugin_cache_dir="$HOME/.terraform.d/plugin-cache"' > ~/.terraformrc
+          mkdir --parents ~/.terraform.d/plugin-cache
+
+      - name: Cache Terraform plugins
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.terraform.d/plugin-cache
+          key: ${{ runner.os }}-terraform-${{ hashFiles('**/.terraform.lock.hcl') }}
+          restore-keys: |
+            ${{ runner.os }}-terraform-
+
+      - name: Code Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize Terraform
+        run: |
+          terraform init \
+          -backend-config=bucket=apollo416-account-terraform-prd \
+          -backend-config=key=account/terraform.tfstate \
+          -backend-config=dynamodb_table=apollo416-account-terraform-prd
+
+      - name: Terraform plan
+        run: terraform plan -out=tfplan.out
+
+      - name: Terraform apply
+        run: terraform apply -auto-approve tfplan.out
