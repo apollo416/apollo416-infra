@@ -65,5 +65,27 @@ jobs:
           -backend-config=key=account/terraform.tfstate \
           -backend-config=dynamodb_table=apollo416-account-terraform-prd
 
+      - uses: terraform-linters/setup-tflint@v4
+        name: Setup TFLint
+        with:
+          tflint_version: v0.53.0
+
+      - name: Show version
+        run: tflint --version
+
+      - name: Init TFLint
+        run: tflint --init
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Run TFLint
+        run: tflint -f compact
+
+      - name: Terraform fmt check
+        run: terraform fmt -check
+
+      - name: Terraform validate
+        run: terraform validate
+
       - name: Terraform plan
         run: terraform plan -out=tfplan.out
