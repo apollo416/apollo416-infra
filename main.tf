@@ -1,19 +1,24 @@
 
 locals {
-  environments         = ["dev", "qa", "prd"]
-  cost_allocation_tags = ["Env"]
+  environments         = toset(["dev", "qa", "prd"])
+  cost_allocation_tags = toset(["Env"])
 }
 
 # cost_allocation_tag
 resource "aws_ce_cost_allocation_tag" "main" {
-  count   = length(local.cost_allocation_tags)
-  tag_key = local.cost_allocation_tags[count.index]
-  status  = "Active"
+  for_each = local.cost_allocation_tags
+  tag_key  = each.value
+  status   = "Active"
 }
 
-module "terraform-state" {
-  source = "./modules/terraform-state"
-  for_each = toset(local.environments)
-  name_prefix = "apollo416-terraform-infra-state"
-  env = each.value
+module "key" {
+  source = "./modules/key"
+}
+
+module "terraform_state" {
+  for_each    = local.environments
+  source      = "./modules/terraform-state"
+  name_prefix = var.state_name_prefix
+  env         = each.value
+  kms_key_id  = module.key.kms_key_id
 }

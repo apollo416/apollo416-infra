@@ -4,20 +4,30 @@ locals {
 }
 
 # aws_s3_bucket
+#tfsec:ignore:aws-s3-enable-bucket-logging
 resource "aws_s3_bucket" "main" {
   #checkov:skip=CKV_AWS_144:Ensure that S3 bucket has cross-region replication enabled
   #checkov:skip=CKV_AWS_18:Ensure the S3 bucket has access logging enabled
-  #checkov:skip=CKV_AWS_145:Ensure that S3 buckets are encrypted with KMS by default
-  bucket   = local.name
+  bucket = local.name
   tags = {
     Env = "prd"
     Rev = "main"
   }
 }
 
+resource "aws_s3_bucket_server_side_encryption_configuration" "main" {
+  bucket = aws_s3_bucket.main.id
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = var.kms_key_id
+      sse_algorithm     = "aws:kms"
+    }
+  }
+}
+
 # aws_s3_bucket_versioning
 resource "aws_s3_bucket_versioning" "main" {
-  bucket   = aws_s3_bucket.main.bucket
+  bucket = aws_s3_bucket.main.bucket
   versioning_configuration {
     status = "Enabled"
   }
@@ -50,7 +60,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "main" {
 
 # aws_s3_bucket_notification
 resource "aws_s3_bucket_notification" "main" {
-  bucket   = aws_s3_bucket.main.id
+  bucket = aws_s3_bucket.main.id
   topic {
     topic_arn = aws_sns_topic.main.arn
     events    = ["s3:ObjectCreated:*"]
@@ -60,7 +70,7 @@ resource "aws_s3_bucket_notification" "main" {
 # aws_sns_topic
 resource "aws_sns_topic" "main" {
   name              = aws_s3_bucket.main.bucket
-  kms_master_key_id = "alias/aws/sns"
+  kms_master_key_id = var.kms_key_id
   policy            = data.aws_iam_policy_document.main.json
   tags = {
     Env = "prd"
@@ -87,11 +97,17 @@ data "aws_iam_policy_document" "main" {
 }
 
 resource "aws_dynamodb_table" "main" {
-  #checkov:skip=CKV_AWS_119:Ensure DynamoDB Tables are encrypted using a KMS Customer Managed CMK
   #checkov:skip=CKV_AWS_28:Ensure DynamoDB point in time recovery (backup) is enabled
   name         = aws_s3_bucket.main.bucket
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "LockID"
+  server_side_encryption {
+    enabled     = true
+    kms_key_arn = var.kms_key_id
+  }
+  point_in_time_recovery {
+    enabled = true
+  }
   attribute {
     name = "LockID"
     type = "S"
