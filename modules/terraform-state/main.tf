@@ -103,7 +103,7 @@ resource "aws_dynamodb_table" "main" {
   hash_key     = "LockID"
   server_side_encryption {
     enabled     = true
-    kms_key_arn = var.kms_key_id
+    kms_key_arn = var.kms_key_arn
   }
   point_in_time_recovery {
     enabled = true

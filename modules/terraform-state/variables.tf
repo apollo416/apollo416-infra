@@ -9,6 +9,11 @@ variable "env" {
   type        = string
 }
 
+variable "kms_key_arn" {
+  description = "The ARN of the KMS key"
+  type        = string
+}
+
 variable "kms_key_id" {
   description = "The ID of the KMS key"
   type        = string

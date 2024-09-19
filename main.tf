@@ -21,4 +21,5 @@ module "terraform_state" {
   name_prefix = var.state_name_prefix
   env         = each.value
   kms_key_id  = module.key.kms_key_id
+  kms_key_arn = module.key.kms_key_arn
 }
