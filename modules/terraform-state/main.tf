@@ -4,10 +4,7 @@ locals {
 }
 
 # aws_s3_bucket
-#tfsec:ignore:aws-s3-enable-bucket-logging
 resource "aws_s3_bucket" "main" {
-  #checkov:skip=CKV_AWS_144:Ensure that S3 bucket has cross-region replication enabled
-  #checkov:skip=CKV_AWS_18:Ensure the S3 bucket has access logging enabled
   bucket = local.name
   tags = {
     Env = "prd"
@@ -97,7 +94,6 @@ data "aws_iam_policy_document" "main" {
 }
 
 resource "aws_dynamodb_table" "main" {
-  #checkov:skip=CKV_AWS_28:Ensure DynamoDB point in time recovery (backup) is enabled
   name         = aws_s3_bucket.main.bucket
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "LockID"

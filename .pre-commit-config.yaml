@@ -6,4 +6,12 @@ repos:
       - id: terraform_validate
       - id: terraform_tflint
       - id: terraform_checkov
+        args:
+          - --args=--quiet
+          - --args=--skip-check CKV_AWS_18
+          - --args=--skip-check CKV_AWS_144
       - id: terraform_tfsec
+        args:
+          - >
+            --args=--no-color
+            -e "aws-s3-enable-bucket-logging"
