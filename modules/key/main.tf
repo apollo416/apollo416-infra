@@ -24,6 +24,26 @@ resource "aws_kms_key_policy" "main" {
         },
         Action   = "kms:*"
         Resource = "*"
+      },
+      {
+        Sid    = "Allow CloudWatch Logs to use the key"
+        Effect = "Allow"
+        Action = [
+          "kms:Encrypt*",
+          "kms:Decrypt*",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:Describe*"
+        ]
+        Principal = {
+          Service = "logs.us-east-1.amazonaws.com"
+        }
+        Resource = ["*"]
+        Condition = {
+          ArnEquals = {
+            "kms:EncryptionContext:aws:logs:arn" : "arn:aws:logs:us-east-1:${data.aws_caller_identity.current.account_id}:*"
+          }
+        }
       }
     ]
   })
